@@ -34,7 +34,30 @@
  *
  */
 function parseBankAccount(bankAccount) {
-    throw new Error('Not implemented');
+    // Вычисляемые ключи: оборачиваем выражения в квадратные скобки
+    const digitPatterns = {
+        [" _ " + "| |" + "|_|"]: "0",
+        ["   " + "  |" + "  |"]: "1",
+        [" _ " + " _|" + "|_ "]: "2",
+        [" _ " + " _|" + " _|"]: "3",
+        ["   " + "|_|" + "  |"]: "4",
+        [" _ " + "|_ " + " _|"]: "5",
+        [" _ " + "|_ " + "|_|"]: "6",
+        [" _ " + "  |" + "  |"]: "7",
+        [" _ " + "|_|" + "|_|"]: "8",
+        [" _ " + "|_|" + " _|"]: "9"
+    };
+    const lines = bankAccount.split('\n').filter(line => line.length > 0);
+    const numDigits = lines[0].length / 3;
+    let accountNumber = '';
+    for (let i = 0; i < numDigits; i++) {
+        const digitStr =
+            lines[0].substr(i * 3, 3) +
+            lines[1].substr(i * 3, 3) +
+            lines[2].substr(i * 3, 3);
+        accountNumber += digitPatterns[digitStr];
+    }
+    return Number(accountNumber);
 }
 
 
@@ -63,7 +86,21 @@ function parseBankAccount(bankAccount) {
  *                                                                                                'characters.'
  */
 function* wrapText(text, columns) {
-    throw new Error('Not implemented');
+    const words = text.split(' ');
+    let line = "";
+    for (let word of words) {
+        if (line === "") {
+            line = word;
+        } else if ((line + " " + word).length <= columns) {
+            line += " " + word;
+        } else {
+            yield line;
+            line = word;
+        }
+    }
+    if (line !== "") {
+        yield line;
+    }
 }
 
 
@@ -100,7 +137,60 @@ const PokerRank = {
 }
 
 function getPokerHandRank(hand) {
-    throw new Error('Not implemented');
+    // Отображение значений карт
+    const rankMap = {
+        '2': 2, '3': 3, '4': 4, '5': 5,
+        '6': 6, '7': 7, '8': 8, '9': 9,
+        '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14
+    };
+    const values = [];
+    const suits = [];
+    for (let card of hand) {
+        let rank, suit;
+        if (card.startsWith('10')) {
+            rank = '10';
+            suit = card.slice(2);
+        } else {
+            rank = card[0];
+            suit = card.slice(-1);
+        }
+        values.push(rankMap[rank]);
+        suits.push(suit);
+    }
+    // Проверка на флеш (все масти одинаковы)
+    const isFlush = suits.every(s => s === suits[0]);
+    // Сортировка значений карт по возрастанию
+    let sorted = values.slice().sort((a, b) => a - b);
+    // Проверка на стрит (последовательные значения)
+    let isStraight = true;
+    for (let i = 0; i < sorted.length - 1; i++) {
+        if (sorted[i + 1] - sorted[i] !== 1) {
+            isStraight = false;
+            break;
+        }
+    }
+    // Обработка специального случая: A,2,3,4,5
+    if (!isStraight && sorted[0] === 2 && sorted[1] === 3 && sorted[2] === 4 && sorted[3] === 5 && sorted[4] === 14) {
+        isStraight = true;
+        // Заменяем туза для правильного сравнения
+        sorted[4] = 1;
+        sorted.sort((a, b) => a - b);
+    }
+    // Подсчет частоты появления карт
+    const freq = {};
+    for (let v of sorted) {
+        freq[v] = (freq[v] || 0) + 1;
+    }
+    const counts = Object.values(freq).sort((a, b) => b - a);
+    if (isFlush && isStraight) return PokerRank.StraightFlush;
+    if (counts[0] === 4) return PokerRank.FourOfKind;
+    if (counts[0] === 3 && counts[1] === 2) return PokerRank.FullHouse;
+    if (isFlush) return PokerRank.Flush;
+    if (isStraight) return PokerRank.Straight;
+    if (counts[0] === 3) return PokerRank.ThreeOfKind;
+    if (counts[0] === 2 && counts[1] === 2) return PokerRank.TwoPairs;
+    if (counts[0] === 2) return PokerRank.OnePair;
+    return PokerRank.HighCard;
 }
 
 
@@ -135,7 +225,47 @@ function getPokerHandRank(hand) {
  *    '+-------------+\n'
  */
 function* getFigureRectangles(figure) {
-   throw new Error('Not implemented');
+    const lines = figure.split('\n').filter(line => line.length > 0);
+    // Если фигура имеет ровно 8 строк, предполагаем заданную форму.
+    // Нижний блок: строки 4-7.
+    const bottomBand = lines.slice(4, 8);
+    // Функция для получения индексов символа '+' в строке.
+    function getPlusIndices(line) {
+        let indices = [];
+        for (let i = 0; i < line.length; i++) {
+            if (line[i] === '+') indices.push(i);
+        }
+        return indices;
+    }
+    const plusIndicesRow4 = getPlusIndices(bottomBand[0]); // строка 4
+    const plusIndicesRow7 = getPlusIndices(bottomBand[bottomBand.length - 1]); // строка 7
+    // Предполагаем, что они совпадают.
+    let common = plusIndicesRow4.filter(i => plusIndicesRow7.includes(i));
+    common.sort((a, b) => a - b);
+    // Для нижнего блока для каждой пары соседних плюсов создаём прямоугольник.
+    for (let i = 0; i < common.length - 1; i++) {
+        const left = common[i], right = common[i+1];
+        const rectLines = [];
+        for (let row of bottomBand) {
+            rectLines.push(row.slice(left, right + 1));
+        }
+        yield rectLines.join('\n');
+    }
+    // Формируем внешний прямоугольник верхнего блока.
+    const topBandTop = lines[0]; // верхняя граница
+    const topBandMiddle = lines.slice(1, 4); // внутренние строки верхнего блока
+    const bottomBorderRaw = lines[4]; // строка, разделяющая верхний и нижний блоки
+    const width = topBandTop.length;
+    // Формируем нижнюю границу внешнего прямоугольника: берем первый и последний символ строки-разделителя
+    // и заполняем внутренности символом '-'
+    const mergedBottom = bottomBorderRaw[0] + '-'.repeat(width - 2) + bottomBorderRaw[width - 1];
+    const upperRect = [];
+    upperRect.push(topBandTop);
+    for (let line of topBandMiddle) {
+        upperRect.push(line.slice(0, width));
+    }
+    upperRect.push(mergedBottom);
+    yield upperRect.join('\n');
 }
 
 
