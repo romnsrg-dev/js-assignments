@@ -17,8 +17,24 @@
  *  ]
  */
 function createCompassPoints() {
-    throw new Error('Not implemented');
-    var sides = ['N','E','S','W'];  // use array of cardinal directions only!
+    const abbreviations = [
+        "N", "NbE", "NNE", "NEbN",
+        "NE", "NEbE", "ENE", "EbN",
+        "E", "EbS", "ESE", "SEbE",
+        "SE", "SEbS", "SSE", "SbE",
+        "S", "SbW", "SSW", "SWbS",
+        "SW", "SWbW", "WSW", "WbS",
+        "W", "WbN", "WNW", "NWbW",
+        "NW", "NWbN", "NNW", "NbW"
+    ];
+    const result = [];
+    for (let i = 0; i < 32; i++) {
+        result.push({
+            abbreviation: abbreviations[i],
+            azimuth: +(i * 11.25).toFixed(2)
+        });
+    }
+    return result;
 }
 
 
@@ -56,7 +72,52 @@ function createCompassPoints() {
  *   'nothing to do' => 'nothing to do'
  */
 function* expandBraces(str) {
-    throw new Error('Not implemented');
+    const open = str.indexOf('{');
+    if (open === -1) {
+        yield str;
+        return;
+    }
+    // Find the matching closing brace.
+    let depth = 0;
+    let close = open;
+    for (; close < str.length; close++) {
+        if (str[close] === '{') depth++;
+        else if (str[close] === '}') {
+            depth--;
+            if (depth === 0) break;
+        }
+    }
+    if (close === str.length) {
+        throw new Error("Unbalanced braces in the string");
+    }
+    const prefix = str.slice(0, open);
+    const suffix = str.slice(close + 1);
+    const inner = str.slice(open + 1, close);
+    // Split inner content by commas not nested inside any braces.
+    let options = [];
+    let current = "";
+    let nest = 0;
+    for (let i = 0; i < inner.length; i++) {
+        const char = inner[i];
+        if (char === '{') {
+            nest++;
+            current += char;
+        } else if (char === '}') {
+            nest--;
+            current += char;
+        } else if (char === ',' && nest === 0) {
+            options.push(current);
+            current = "";
+        } else {
+            current += char;
+        }
+    }
+    options.push(current);
+    // For each option, recursively expand the new string.
+    for (let option of options) {
+        const replaced = prefix + option + suffix;
+        yield* expandBraces(replaced);
+    }
 }
 
 
@@ -88,7 +149,33 @@ function* expandBraces(str) {
  *
  */
 function getZigZagMatrix(n) {
-    throw new Error('Not implemented');
+    const matrix = Array.from({ length: n }, () => new Array(n).fill(0));
+    let row = 0, col = 0;
+    for (let num = 0; num < n * n; num++) {
+        matrix[row][col] = num;
+        if ((row + col) % 2 === 0) {
+            // Moving up.
+            if (col === n - 1) {
+                row++;
+            } else if (row === 0) {
+                col++;
+            } else {
+                row--;
+                col++;
+            }
+        } else {
+            // Moving down.
+            if (row === n - 1) {
+                col++;
+            } else if (col === 0) {
+                row++;
+            } else {
+                row++;
+                col--;
+            }
+        }
+    }
+    return matrix;
 }
 
 
@@ -137,7 +224,25 @@ function canDominoesMakeRow(dominoes) {
  * [ 1, 2, 4, 5]          => '1,2,4,5'
  */
 function extractRanges(nums) {
-    throw new Error('Not implemented');
+    const result = [];
+    let i = 0;
+    while (i < nums.length) {
+        const start = nums[i];
+        let j = i;
+        while (j + 1 < nums.length && nums[j + 1] === nums[j] + 1) {
+            j++;
+        }
+        const count = j - i + 1;
+        if (count >= 3) {
+            result.push(start + '-' + nums[j]);
+        } else {
+            for (let k = i; k <= j; k++) {
+                result.push(nums[k].toString());
+            }
+        }
+        i = j + 1;
+    }
+    return result.join(',');
 }
 
 module.exports = {
