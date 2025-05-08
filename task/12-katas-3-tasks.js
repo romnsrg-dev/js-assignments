@@ -28,7 +28,53 @@
  *   'NULL'      => false 
  */
 function findStringInSnakingPuzzle(puzzle, searchStr) {
-    throw new Error('Not implemented');
+    const rows = puzzle.length;
+    const cols = puzzle[0]?.length || 0;
+
+    // Массив направлений: вверх, вниз, влево, вправо
+    const directions = [
+        [-1, 0], [1, 0], [0, -1], [0, 1]
+    ];
+
+    // Вспомогательная функция для поиска в глубину (DFS)
+    function dfs(x, y, index, visited) {
+        if (index === searchStr.length) {
+            return true; // Весь искомый текст найден
+        }
+        // Проверка: выходит ли за границы или клетка уже посещена
+        if (x < 0 || x >= rows || y < 0 || y >= cols || visited[x][y]) {
+            return false;
+        }
+        // Если текущий символ не совпадает с нужным
+        if (puzzle[x][y] !== searchStr[index]) {
+            return false;
+        }
+
+        // Отмечаем текущую клетку как посещённую
+        visited[x][y] = true;
+        // Рекурсивно исследуем все четыре направления
+        for (const [dx, dy] of directions) {
+            if (dfs(x + dx, y + dy, index + 1, visited)) {
+                return true;
+            }
+        }
+        // Отмена отметки (бэктрекинг)
+        visited[x][y] = false;
+        return false;
+    }
+
+    // Инициализируем матрицу посещений
+    const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
+
+    // Запускаем поиск начиная с каждой клетки сетки
+    for (let i = 0; i < rows; i++) {
+        for (let j = 0; j < cols; j++) {
+            if (dfs(i, j, 0, visited)) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 
@@ -45,7 +91,17 @@ function findStringInSnakingPuzzle(puzzle, searchStr) {
  *    'abc' => 'abc','acb','bac','bca','cab','cba'
  */
 function* getPermutations(chars) {
-    throw new Error('Not implemented');
+    if (chars.length <= 1) {
+        yield chars;
+    } else {
+        for (let i = 0; i < chars.length; i++) {
+            const currentChar = chars[i];
+            const remainingChars = chars.slice(0, i) + chars.slice(i + 1);
+            for (const perm of getPermutations(remainingChars)) {
+                yield currentChar + perm;
+            }
+        }
+    }
 }
 
 
@@ -65,7 +121,17 @@ function* getPermutations(chars) {
  *    [ 1, 6, 5, 10, 8, 7 ] => 18  (buy at 1,6,5 and sell all at 10)
  */
 function getMostProfitFromStockQuotes(quotes) {
-    throw new Error('Not implemented');
+    let maxProfit = 0;
+    let maxPrice = 0;
+
+    for (let i = quotes.length - 1; i >= 0; i--) {
+        if (quotes[i] > maxPrice) {
+            maxPrice = quotes[i];
+        }
+        maxProfit += maxPrice - quotes[i];
+    }
+
+    return maxProfit;
 }
 
 
@@ -84,20 +150,44 @@ function getMostProfitFromStockQuotes(quotes) {
  * 
  */
 function UrlShortener() {
-    this.urlAllowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"+
-                           "abcdefghijklmnopqrstuvwxyz"+
-                           "0123456789-_.~!*'();:@&=+$,/?#[]";
+    // Используем Map для хранения сопоставлений между коротким кодом и оригинальным URL
+    this.urlMap = new Map();
+    // Счетчик для генерации уникальных коротких кодов
+    this.counter = 0;
+    // Набор символов для построения короткого кода
+    this.urlAllowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+        "abcdefghijklmnopqrstuvwxyz" +
+        "0123456789-_.~!*'();:@&=+$,/?#[]";
+    this.base = this.urlAllowedChars.length;
 }
 
 UrlShortener.prototype = {
-
+    /**
+     * Кодирует URL в короткий код и сохраняет сопоставление.
+     */
     encode: function(url) {
-        throw new Error('Not implemented');
+        let shortCode = this.generateShortCode(this.counter);
+        this.counter++;
+        this.urlMap.set(shortCode, url);
+        return shortCode;
     },
-    
+    /**
+     * Декодирует короткий код, возвращая исходный URL.
+     */
     decode: function(code) {
-        throw new Error('Not implemented');
-    } 
+        return this.urlMap.get(code) || '';
+    },
+    /**
+     * Генерирует короткий код на основе числа.
+     */
+    generateShortCode: function(num) {
+        let shortCode = '';
+        while (num > 0) {
+            shortCode = this.baseChars[num % this.base] + shortCode;
+            num = Math.floor(num / this.base);
+        }
+        return shortCode || this.baseChars[0];
+    }
 }
 
 
